@@ -117,12 +117,7 @@ receiver.app.get('/health', (req, res) => {
 });
 
 // --- Start App
-(async () => {
-  await app.start(process.env.PORT || 3000);
-  console.log('⚡️ Catfish Slack Bot is running!');
-
-  const PORT = process.env.PORT || 3000;
-  receiver.app.listen(PORT, () => {
-    console.log(`🌐 Express server listening on port ${PORT}`);
-  });
-})();
+const PORT = process.env.PORT || 3000;
+receiver.app.listen(PORT, async () => {
+  console.log(`⚡️ Catfish Slack Bot is running on port ${PORT}`);
+});

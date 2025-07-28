@@ -6,6 +6,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
+const express = require('express');
 
 // ExpressReceiver lets us share a single web server with Bolt + Express
 const receiver = new ExpressReceiver({
@@ -18,6 +19,13 @@ const app = new App({
   receiver,
   appToken: process.env.SLACK_APP_TOKEN,
   socketMode: false
+});
+
+// --- Slack Events URL verification handler
+receiver.app.post('/slack/events', express.json(), (req, res) => {
+  if (req.body && req.body.type === 'url_verification') {
+    return res.send({ challenge: req.body.challenge });
+  }
 });
 
 // --- Utility: Download file from Slack
@@ -101,6 +109,11 @@ app.event('file_shared', async ({ event, client, context }) => {
 // --- Add homepage route
 receiver.app.get('/', (req, res) => {
   res.send('Catfish Slack Bot is alive! 🐟');
+});
+
+// --- Custom domain route for Railway health check
+receiver.app.get('/health', (req, res) => {
+  res.send('Healthy on file-auditor-bot-production.up.railway.app ✅');
 });
 
 // --- Start App

@@ -1,4 +1,4 @@
-=// 🐟 Catfish Slack Bot – PDF to Pipedrive Uploader (Socket Mode Version)
+// 🐟 Catfish Slack Bot – PDF to Pipedrive Uploader (Socket Mode Version)
 
 const { App } = require('@slack/bolt');
 const axios = require('axios');
@@ -97,3 +97,4 @@ app.event('file_shared', async ({ event, client, context }) => {
   await app.start();
   console.log('⚡️ Catfish Slack Bot is running.');
 })();
+  // --- End of index.js  

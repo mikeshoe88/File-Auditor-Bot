@@ -116,8 +116,8 @@ receiver.app.get('/health', (req, res) => {
   res.send('Healthy on file-auditor-bot-production.up.railway.app ✅');
 });
 
-// --- Start App
+// --- Start Express server (only this one!)
 const PORT = process.env.PORT || 3000;
-receiver.app.listen(PORT, async () => {
+receiver.app.listen(PORT, () => {
   console.log(`⚡️ Catfish Slack Bot is running on port ${PORT}`);
 });

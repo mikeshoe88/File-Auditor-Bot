@@ -1,31 +1,17 @@
-// 🐟 Catfish Slack Bot – PDF to Pipedrive Uploader
+// 🐟 Catfish Slack Bot – PDF to Pipedrive Uploader (Socket Mode Version)
 
-const { App, ExpressReceiver } = require('@slack/bolt');
+const { App } = require('@slack/bolt');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 const https = require('https');
 const path = require('path');
-const express = require('express');
-
-// ExpressReceiver lets us share a single web server with Bolt + Express
-const receiver = new ExpressReceiver({
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-  endpoints: '/slack/events'
-});
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  receiver,
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
   appToken: process.env.SLACK_APP_TOKEN,
-  socketMode: false
-});
-
-// --- Slack Events URL verification handler
-receiver.app.post('/slack/events', express.json(), (req, res) => {
-  if (req.body && req.body.type === 'url_verification') {
-    return res.send({ challenge: req.body.challenge });
-  }
+  socketMode: true
 });
 
 // --- Utility: Download file from Slack
@@ -106,18 +92,8 @@ app.event('file_shared', async ({ event, client, context }) => {
   }
 });
 
-// --- Add homepage route
-receiver.app.get('/', (req, res) => {
-  res.send('Catfish Slack Bot is alive! 🐟');
-});
-
-// --- Custom domain route for Railway health check
-receiver.app.get('/health', (req, res) => {
-  res.send('Healthy on file-auditor-bot-production.up.railway.app ✅');
-});
-
-// --- Start Express server (only this one!)
-const PORT = process.env.PORT || 3000;
-receiver.app.listen(PORT, () => {
-  console.log(`⚡️ Catfish Slack Bot is running on port ${PORT}`);
-});
+// --- Start the bot
+(async () => {
+  await app.start();
+  console.log('⚡️ Catfish Slack Bot is running.');
+})();

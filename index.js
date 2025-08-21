@@ -7,6 +7,10 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
+// Regex to ignore Dispatcher-generated work orders
+const IGNORE_FILE_REGEX = /(WO_|Work Order|Completed Work Order)/i;
+const IGNORE_COMMENT_REGEX = /(Completed Work Order|AID:\d+)/i;
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_SIGNING_SECRET,
@@ -52,13 +56,34 @@ app.event('file_shared', async ({ event, client, context }) => {
     const fileInfo = await client.files.info({ file: event.file_id });
     console.log("ℹ️ File Info:", JSON.stringify(fileInfo, null, 2));
     const file = fileInfo.file;
+
+    // 🛑 Skip non-PDFs
+    if (file.filetype !== 'pdf') {
+      console.log(`Skipping non-PDF file: ${file.name}`);
+      return;
+    }
+
+    // 🛑 Skip files uploaded by Catfish itself
+    if (file.user === context.botUserId) {
+      console.log("Skipping own uploaded file.");
+      return;
+    }
+
+    // 🛑 Skip Dispatcher-generated work orders
+    if (IGNORE_FILE_REGEX.test(file.name) || IGNORE_FILE_REGEX.test(file.title)) {
+      console.log(`Skipping Dispatcher WO PDF: ${file.name}`);
+      return;
+    }
+    if (file.initial_comment && IGNORE_COMMENT_REGEX.test(file.initial_comment)) {
+      console.log(`Skipping based on comment: ${file.initial_comment}`);
+      return;
+    }
+
     const channelId = file?.channels?.[0] || event.channel_id;
-    console.log("📺 Channel ID:", channelId);
     if (!channelId) return;
 
     const channelInfo = await client.conversations.info({ channel: channelId });
     const channelName = channelInfo.channel.name;
-    console.log("📛 Channel Name:", channelName);
 
     const dealMatch = channelName.match(/deal(\d+)/i);
     if (!dealMatch) {
@@ -71,14 +96,11 @@ app.event('file_shared', async ({ event, client, context }) => {
     }
 
     const dealId = dealMatch[1];
-    console.log("🔢 Matched Deal ID:", dealId);
-
     const filePath = await downloadFile(file.url_private_download, context.botToken);
     const renamedFileName = `Scope - ${channelName.replace(/-/g, ' ')}.pdf`;
-    console.log("📂 Downloaded and renamed:", renamedFileName);
 
     await uploadToPipedrive(dealId, filePath, renamedFileName);
-    console.log("✅ Uploaded to Pipedrive");
+    console.log("✅ Uploaded scope to Pipedrive");
 
     await client.chat.postMessage({
       channel: channelId,
@@ -97,4 +119,3 @@ app.event('file_shared', async ({ event, client, context }) => {
   await app.start();
   console.log('⚡️ Catfish Slack Bot is running.');
 })();
-  // --- End of index.js  
